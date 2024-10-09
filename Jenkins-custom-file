@@ -10,7 +10,8 @@ pipeline{
                 echo "Git Checkout from Github Jenkinsfile *Jenkins-custom-file*"
             }
         }
-        stage("Maven Build"){
+    }
+    stage("Maven Build"){
             steps{
                 dir('/var/lib/jenkins/workspace/Declarative-pipeline/myweb'){
                     sh "mvn clean package"
@@ -18,52 +19,55 @@ pipeline{
                 }
             }
         }
-        stage('Check Workspace and Files') {
+        
+    stage('Verify Build Output') {
             steps {
                 sh '''
                     echo "Current Workspace:"
                     pwd
-                    echo "Listing files in target/ directory:"
-                    ls -l target/
+                    echo "Listing files in /var/lib/jenkins/workspace/Declarative-pipeline/myweb/target/ directory:"
+                    ls -l /var/lib/jenkins/workspace/Declarative-pipeline/myweb/target/
                 '''
             }
         }
-
         stage('Deploy') {
-    steps {
-        sshagent(['tomcat']) {
-            sh '''
-                # Use an absolute path to the WAR file
-                echo "Copying WAR file to the remote server..."
-                scp -o StrictHostKeyChecking=no ${WORKSPACE}/target/myweb.war root@192.168.157.133:/opt/tomcat/webapps/
-                if [ $? -ne 0 ]; then
-                    echo "WAR file transfer failed!"
-                    exit 1
-                fi
+            steps {
+                sshagent(['tomcat']) {
+                    sh '''
+                        # Verify the WAR file exists before copying
+                        if [ ! -f /var/lib/jenkins/workspace/Declarative-pipeline/myweb/target/myweb.war ]; then
+                            echo "WAR file not found in Jenkins workspace!"
+                            exit 1
+                        fi
 
-                # Shutdown Tomcat
-                echo "Shutting down Tomcat server..."
-                ssh root@192.168.157.133 /opt/tomcat/bin/shutdown.sh
-                if [ $? -ne 0 ]; then
-                    echo "Failed to shut down Tomcat!"
-                    exit 1
-                fi
+                        # Copy the WAR file to the remote Tomcat server
+                        echo "Copying WAR file to the remote server..."
+                        scp -o StrictHostKeyChecking=no /var/lib/jenkins/workspace/Declarative-pipeline/myweb/target/myweb.war root@192.168.157.133:/opt/tomcat/webapps/
+                        if [ $? -ne 0 ]; then
+                            echo "WAR file transfer failed!"
+                            exit 1
+                        fi
 
-                # Start Tomcat
-                echo "Starting Tomcat server..."
-                ssh root@192.168.157.133 /opt/tomcat/bin/startup.sh
-                if [ $? -ne 0 ]; then
-                    echo "Failed to start Tomcat!"
-                    exit 1
-                fi
+                        # Shutdown Tomcat on the remote server
+                        echo "Shutting down Tomcat server..."
+                        ssh root@192.168.157.133 /opt/tomcat/bin/shutdown.sh
+                        if [ $? -ne 0 ]; then
+                            echo "Failed to shut down Tomcat!"
+                            exit 1
+                        fi
 
-                echo "Deployment completed successfully."
-            '''
+                        # Start Tomcat on the remote server
+                        echo "Starting Tomcat server..."
+                        ssh root@192.168.157.133 /opt/tomcat/bin/startup.sh
+                        if [ $? -ne 0 ]; then
+                            echo "Failed to start Tomcat!"
+                            exit 1
+                        fi
+
+                        echo "Deployment completed successfully."
+                    '''
+                
+            }
         }
-    }
-}
-
-     
-
-    }
+    } 
 }
