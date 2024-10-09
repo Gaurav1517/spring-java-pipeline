@@ -1,3 +1,5 @@
+currentBuild.displayName = "mywebapp-tomcat-#"+currentBuild.number
+
 pipeline{
     agent any
 
