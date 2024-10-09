@@ -18,17 +18,39 @@ pipeline{
                 }
             }
         }
-        stage("Deploy"){
-                steps{
-                        sshagent(['tomcat']) {
-                                sh """
-                                        scp -o StrictHostKeyChecking=no target/myweb.war root@192.168.157.133:/opt/tomcat/webapps/
-                                        ssh root@192.168.157.133 /opt/tomcat/bin/shutdown.sh
-                                        ssh root@192.168.157.133 /opt/tomcat/bin/startup.sh
-                    
-                                """
-                        }
-                }    
+     stage('Deploy') {
+        steps {
+            sshagent(['tomcat']) {
+                sh '''
+                    # Copy the WAR file to the remote Tomcat server
+                    echo "Copying WAR file to the remote server..."
+                    scp -o StrictHostKeyChecking=no target/myweb.war root@192.168.157.133:/opt/tomcat/webapps/
+                    if [ $? -ne 0 ]; then
+                        echo "WAR file transfer failed!"
+                        exit 1
+                    fi
+
+                    # Shutdown Tomcat
+                    echo "Shutting down Tomcat server..."
+                    ssh root@192.168.157.133 /opt/tomcat/bin/shutdown.sh
+                    if [ $? -ne 0 ]; then
+                        echo "Failed to shut down Tomcat!"
+                        exit 1
+                    fi
+
+                    # Start Tomcat
+                    echo "Starting Tomcat server..."
+                    ssh root@192.168.157.133 /opt/tomcat/bin/startup.sh
+                    if [ $? -ne 0 ]; then
+                        echo "Failed to start Tomcat!"
+                        exit 1
+                    fi
+
+                    echo "Deployment completed successfully."
+                '''
+                 }
+            }
         }
+
     }
 }
