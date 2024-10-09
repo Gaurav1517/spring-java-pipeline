@@ -10,8 +10,8 @@ pipeline{
                 echo "Git Checkout from Github Jenkinsfile *Jenkins-custom-file*"
             }
         }
-    }
-    stage("Maven Build"){
+    
+        stage("Maven Build"){
             steps{
                 dir('/var/lib/jenkins/workspace/Declarative-pipeline/myweb'){
                     sh "mvn clean package"
@@ -20,7 +20,7 @@ pipeline{
             }
         }
         
-    stage('Verify Build Output') {
+        stage('Verify Build Output') {
             steps {
                 sh '''
                     echo "Current Workspace:"
@@ -67,7 +67,8 @@ pipeline{
                         echo "Deployment completed successfully."
                     '''
                 
+                }
             }
-        }
-    } 
+        } 
+    }
 }
